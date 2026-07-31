@@ -41,6 +41,19 @@ window.addEventListener("message", function (e) {
 </script>
 ```
 
+## Záložní snapshot alba
+
+Když proxy nedojede, widget sáhne po uloženém seznamu fotek v `w/data/<albumId>.json`,
+takže galerie funguje dál. Snapshot se pořídí a aktualizuje takhle:
+
+```bash
+python3 snapshot.py https://eu.zonerama.com/N322T/Album/15900167
+git add w/data && git commit -m "Snapshot alba" && git push
+```
+
+Snapshot obsahuje jen ID a rozměry fotek, obrázky se pořád berou ze Zoneramy. Když se do
+alba přidají nové fotky, je potřeba ho pustit znovu (přes proxy se načtou samy).
+
 ## Jak to funguje
 
 Zonerama nemá veřejné API a neposílá CORS hlavičky, takže seznam fotek nejde z prohlížeče

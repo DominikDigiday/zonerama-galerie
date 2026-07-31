@@ -303,6 +303,24 @@
            '&startIndex=' + startIndex + '&count=' + BATCH;
   }
 
+  // Záložní zdroj: snapshot alba uložený v repu (w/data/<albumId>.json).
+  // Použije se, když proxy nedojede, ať galerie nespadne úplně.
+  function loadSnapshot() {
+    return fetch('data/' + albumId + '.json', { cache: 'no-cache' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        (d.photos || []).forEach(function (p) {
+          if (seen[p.id]) return;
+          seen[p.id] = true;
+          photos.push(p);
+        });
+        if (!photos.length) throw new Error('prázdný snapshot');
+      });
+  }
+
   function load(startIndex) {
     return fetch(PROXY + encodeURIComponent(listUrl(startIndex)))
       .then(function (r) {
@@ -328,17 +346,24 @@
       });
   }
 
-  load(0).then(function () {
-    if (!photos.length) {
-      fail('Album je prázdné nebo není veřejné.', albumUrl);
-      return;
-    }
-    document.getElementById('state').hidden = true;
-    head();
-    render(PAGE);
-  }).catch(function () {
-    fail('Fotky se nepodařilo načíst.', albumUrl);
-  });
+  load(0)
+    .catch(function () {
+      photos = [];
+      seen = Object.create(null);
+      return loadSnapshot();
+    })
+    .then(function () {
+      if (!photos.length) {
+        fail('Album je prázdné nebo není veřejné.', albumUrl);
+        return;
+      }
+      document.getElementById('state').hidden = true;
+      head();
+      render(PAGE);
+    })
+    .catch(function () {
+      fail('Fotky se nepodařilo načíst.', albumUrl);
+    });
 
   /* ---------- vykreslení ---------- */
   var grid = document.getElementById('grid');
