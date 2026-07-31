@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Fotogalerie ze Zoneramy | DigiDay</title>
+<style>
+  /* ── QARO / DigiDay vizuál (zhodný s generátorem úřední desky) ── */
+  :root {
+    color-scheme: dark;
+    --pink:      #f5127b;
+    --pink-grad: linear-gradient(90deg, #f5127b, #a50c5e);
+    --bg:   #150f26;
+    --sur1: rgba(29, 21, 51, 0.8);
+    --sur2: rgba(255, 255, 255, 0.05);
+    --sur3: rgba(255, 255, 255, 0.1);
+    --bdr:  rgba(255, 255, 255, 0.1);
+    --bdr2: rgba(255, 255, 255, 0.18);
+    --txt:  #f1f5f9;
+    --txt2: #94a3b8;
+    --txt3: #64748b;
+    --cyan: #67e8f9;
+    --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+  }
+  html[data-theme="light"] {
+    color-scheme: light;
+    --bg:   #eef1f6;
+    --sur1: #ffffff;
+    --sur2: #f1f5f9;
+    --sur3: #e2e8f0;
+    --bdr:  #e2e8f0;
+    --bdr2: #cbd5e1;
+    --txt:  #0f172a;
+    --txt2: #475569;
+    --txt3: #64748b;
+    --cyan: #0e7490;
+    --shadow-card: 0 12px 32px rgba(15, 17, 21, 0.06), 0 4px 12px rgba(15, 17, 21, 0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Geist", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--txt);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--pink); color: #fff; }
+
+  .page { max-width: 1080px; margin: 0 auto; padding: 40px 22px 72px; }
+
+  header.top { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  header.top h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+  .badge {
+    padding: 5px 12px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--pink-grad);
+    border-radius: 999px;
+  }
+  .theme-toggle {
+    margin-left: auto;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: .85rem;
+    color: var(--txt2);
+    background: var(--sur2);
+    border: 1px solid var(--bdr);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--txt); border-color: var(--bdr2); }
+  .lead { max-width: 62ch; margin-bottom: 30px; color: var(--txt2); font-size: .95rem; line-height: 1.6; }
+
+  .card {
+    padding: 24px;
+    background: var(--sur1);
+    border: 1px solid var(--bdr);
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 22px;
+  }
+  .card h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    font-size: 1.02rem;
+    font-weight: 650;
+  }
+  .card h2 .n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    font-size: .78rem;
+    color: #fff;
+    background: var(--pink-grad);
+    border-radius: 50%;
+  }
+
+  label { display: block; margin-bottom: 7px; font-size: .82rem; font-weight: 600; color: var(--txt2); }
+  input[type=text], input[type=number], select {
+    width: 100%;
+    padding: 11px 13px;
+    font: inherit;
+    font-size: .93rem;
+    color: var(--txt);
+    background: var(--sur2);
+    border: 1px solid var(--bdr);
+    border-radius: 10px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--pink); }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 190px; }
+  .field { margin-bottom: 16px; }
+  .hint { margin-top: 6px; font-size: .78rem; color: var(--txt3); }
+
+  .check { display: flex; align-items: center; gap: 9px; margin-top: 26px; }
+  .check input { width: 17px; height: 17px; accent-color: var(--pink); }
+  .check label { margin: 0; font-weight: 500; color: var(--txt); }
+
+  button.primary {
+    padding: 11px 22px;
+    font: inherit;
+    font-weight: 650;
+    color: #fff;
+    background: var(--pink-grad);
+    border: 0;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  button.ghost {
+    padding: 9px 16px;
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--txt2);
+    background: var(--sur2);
+    border: 1px solid var(--bdr);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  button.ghost:hover { color: var(--txt); border-color: var(--bdr2); }
+
+  .status { margin-top: 12px; font-size: .87rem; color: var(--txt2); min-height: 1.2em; }
+  .status.err { color: #fb7185; }
+  .status.ok { color: var(--cyan); }
+
+  pre.code {
+    padding: 15px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82rem;
+    line-height: 1.55;
+    color: var(--txt);
+    background: var(--sur2);
+    border: 1px solid var(--bdr);
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .code-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .code-head h3 { font-size: .88rem; font-weight: 650; }
+  .code-head button { margin-left: auto; }
+  .code-block { margin-bottom: 20px; }
+
+  .preview-frame {
+    width: 100%;
+    height: 620px;
+    background: #fff;
+    border: 1px solid var(--bdr);
+    border-radius: 12px;
+  }
+  html[data-theme="dark"] .preview-frame { background: #12161c; }
+
+  details.adv { margin-top: 4px; }
+  details.adv summary { cursor: pointer; font-size: .85rem; color: var(--txt2); }
+  details.adv summary:hover { color: var(--txt); }
+  details.adv .body { padding-top: 16px; }
+
+  footer.foot { margin-top: 34px; font-size: .8rem; color: var(--txt3); line-height: 1.7; }
+  footer.foot a { color: var(--txt2); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="top">
+    <h1>Fotogalerie ze Zoneramy</h1>
+    <span class="badge">DigiDay</span>
+    <button class="theme-toggle" id="theme-toggle" type="button">Světlý režim</button>
+  </header>
+  <p class="lead">
+    Z veřejného alba na Zoneramě udělá galerii, kterou vložíte do webu obce jako iframe.
+    Fotky zůstávají na Zoneramě, web je jen zobrazuje, takže se hosting webu nezaplní.
+  </p>
+
+  <div class="card">
+    <h2><span class="n">1</span> Odkaz na album</h2>
+    <div class="field">
+      <label for="album">URL alba na Zoneramě</label>
+      <input type="text" id="album" placeholder="https://eu.zonerama.com/N322T/Album/15900167" spellcheck="false">
+      <div class="hint">Album musí být veřejné, tedy bez hesla a bez tajného odkazu.</div>
+    </div>
+    <button class="primary" id="load" type="button">Načíst album</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card" id="opts-card" hidden>
+    <h2><span class="n">2</span> Nastavení</h2>
+    <div class="row">
+      <div class="field">
+        <label for="title">Nadpis galerie</label>
+        <input type="text" id="title" placeholder="Nechte prázdné pro galerii bez nadpisu">
+      </div>
+      <div class="field">
+        <label for="size">Velikost dlaždic</label>
+        <select id="size">
+          <option value="s">Malé</option>
+          <option value="m" selected>Střední</option>
+          <option value="l">Velké</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="theme">Barevné schéma</label>
+        <select id="theme">
+          <option value="light" selected>Světlé</option>
+          <option value="dark">Tmavé</option>
+          <option value="transparent">Průhledné pozadí</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="height">Výška iframu (px)</label>
+        <input type="number" id="height" value="900" min="300" step="50">
+        <div class="hint">Při zapnuté automatické výšce se použije jen než se galerie načte.</div>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="link" checked>
+        <label for="link">Odkaz na album na Zoneramě</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="out-card" hidden>
+    <h2><span class="n">3</span> Kód k vložení</h2>
+
+    <div class="code-block">
+      <div class="code-head">
+        <h3>Vložte do stránky</h3>
+        <button class="ghost" type="button" data-copy="code-iframe">Kopírovat</button>
+      </div>
+      <pre class="code" id="code-iframe"></pre>
+    </div>
+
+    <details class="adv">
+      <summary>Automatická výška iframu (volitelné)</summary>
+      <div class="body">
+        <p class="hint" style="margin-bottom:12px">
+          Bez tohoto skriptu má galerie pevnou výšku a uvnitř se roluje. Se skriptem se iframe
+          přizpůsobí obsahu. Vložte ho na stránku kamkoli za iframe.
+        </p>
+        <div class="code-head">
+          <h3>Skript pro automatickou výšku</h3>
+          <button class="ghost" type="button" data-copy="code-resize">Kopírovat</button>
+        </div>
+        <pre class="code" id="code-resize"></pre>
+      </div>
+    </details>
+  </div>
+
+  <div class="card" id="prev-card" hidden>
+    <h2><span class="n">4</span> Náhled</h2>
+    <iframe class="preview-frame" id="preview" title="Náhled galerie"></iframe>
+  </div>
+
+  <footer class="foot">
+    Widget běží na GitHub Pages, seznam fotek se čte přes CORS proxy na
+    <a href="https://qaro-edeska.vercel.app" target="_blank" rel="noopener">qaro-edeska.vercel.app</a>.
+    Fotky se načítají přímo z CDN Zoneramy.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var PROXY = 'https://qaro-edeska.vercel.app/api/fetch?url=';
+  var WIDGET = new URL('w/', location.href).href;
+
+  var el = function (id) { return document.getElementById(id); };
+  var album = null;   // { url, host, id, title, count }
+
+  /* ---------- téma generátoru ---------- */
+  var toggle = el('theme-toggle');
+  toggle.addEventListener('click', function () {
+    var light = document.documentElement.dataset.theme === 'light';
+    document.documentElement.dataset.theme = light ? 'dark' : 'light';
+    toggle.textContent = light ? 'Světlý režim' : 'Tmavý režim';
+  });
+
+  /* ---------- načtení alba ---------- */
+  function setStatus(msg, kind) {
+    var s = el('status');
+    s.textContent = msg;
+    s.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function parseAlbum(raw) {
+    var u;
+    try { u = new URL(raw.trim()); } catch (e) { return null; }
+    var m = /\/Album\/(\d+)/i.exec(u.pathname);
+    if (!/(^|\.)zonerama\.com$/i.test(u.hostname) || !m) return null;
+    return { url: u.href, host: u.protocol + '//' + u.hostname, id: m[1] };
+  }
+
+  function meta(html, prop) {
+    var re = new RegExp('<meta property="' + prop + '" content="([^"]*)"', 'i');
+    var m = re.exec(html);
+    if (!m) return '';
+    var d = document.createElement('textarea');
+    d.innerHTML = m[1];
+    return d.value;
+  }
+
+  el('load').addEventListener('click', function () {
+    var parsed = parseAlbum(el('album').value);
+    if (!parsed) {
+      setStatus('Vložte odkaz na album, například https://eu.zonerama.com/N322T/Album/15900167.', 'err');
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    setStatus('Načítám album…');
+
+    fetch(PROXY + encodeURIComponent(parsed.url))
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function (html) {
+        var isPublic = meta(html, 'znrm:public') !== 'false';
+        var title = meta(html, 'og:title');
+        var desc = meta(html, 'og:description');
+        var count = (/(\d+)\s*fot/i.exec(desc) || [])[1] || '';
+        if (!title) throw new Error('bez titulku');
+        if (!isPublic) {
+          setStatus('Album není veřejné, do webu ho takhle vložit nelze.', 'err');
+          btn.disabled = false;
+          return;
+        }
+        album = { url: parsed.url, host: parsed.host, id: parsed.id, title: title, count: count };
+        el('title').value = title;
+        setStatus('Načteno: ' + title + (count ? ' (' + count + ' fotek)' : ''), 'ok');
+        el('opts-card').hidden = false;
+        el('out-card').hidden = false;
+        el('prev-card').hidden = false;
+        update();
+        btn.disabled = false;
+      })
+      .catch(function () {
+        setStatus('Album se nepodařilo načíst. Zkontrolujte odkaz a že je album veřejné.', 'err');
+        btn.disabled = false;
+      });
+  });
+
+  /* ---------- sestavení kódu ---------- */
+  function widgetUrl() {
+    var p = new URLSearchParams();
+    p.set('album', album.url);
+    var t = el('title').value.trim();
+    if (t) p.set('title', t);
+    var theme = el('theme').value;
+    if (theme === 'dark') p.set('theme', 'dark');
+    if (theme === 'transparent') p.set('bg', 'transparent');
+    var size = el('size').value;
+    if (size !== 'm') p.set('size', size);
+    if (!el('link').checked) p.set('link', '0');
+    return WIDGET + '?' + p.toString();
+  }
+
+  function update() {
+    if (!album) return;
+    var url = widgetUrl();
+    var h = parseInt(el('height').value, 10) || 900;
+
+    el('code-iframe').textContent =
+      '<iframe src="' + url + '"\n' +
+      '        title="Fotogalerie"\n' +
+      '        style="width:100%;height:' + h + 'px;border:0;display:block"\n' +
+      '        loading="lazy"\n' +
+      '        id="zonerama-galerie"></iframe>';
+
+    el('code-resize').textContent =
+      '<script>\n' +
+      'window.addEventListener("message", function (e) {\n' +
+      '  if (!e.data || e.data.type !== "zonerama-galerie-height") return;\n' +
+      '  var f = document.getElementById("zonerama-galerie");\n' +
+      '  if (f) f.style.height = e.data.height + "px";\n' +
+      '});\n' +
+      '<\/script>';
+
+    el('preview').src = url;
+  }
+
+  ['title', 'size', 'theme', 'height', 'link'].forEach(function (id) {
+    el(id).addEventListener('input', update);
+    el(id).addEventListener('change', update);
+  });
+
+  /* ---------- kopírování ---------- */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    var text = el(btn.dataset.copy).textContent;
+    navigator.clipboard.writeText(text).then(function () {
+      var old = btn.textContent;
+      btn.textContent = 'Zkopírováno';
+      setTimeout(function () { btn.textContent = old; }, 1600);
+    });
+  });
+
+  /* ---------- předvyplnění z URL ---------- */
+  var pre = new URLSearchParams(location.search).get('album');
+  if (pre) {
+    el('album').value = pre;
+    el('load').click();
+  }
+})();
+</script>
+</body>
+</html>

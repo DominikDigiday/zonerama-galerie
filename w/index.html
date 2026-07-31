@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Fotogalerie</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1b2430;
+    --muted: #6b7684;
+    --line: #e6e9ee;
+    --tile-bg: #eef1f5;
+    --accent: #0b6bcb;
+    --btn-bg: #ffffff;
+    --radius: 10px;
+    --gap: 8px;
+    --row: 200px;
+  }
+  html.theme-dark {
+    --bg: #12161c;
+    --text: #eef1f5;
+    --muted: #9aa5b1;
+    --line: #262d38;
+    --tile-bg: #1c222b;
+    --accent: #66aaff;
+    --btn-bg: #1c222b;
+  }
+  html.transparent, html.transparent body { background: transparent; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 16px 14px 28px; }
+
+  header.gal-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  header.gal-head[hidden] { display: none; }
+  header.gal-head h1 { font-size: 1.35rem; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  header.gal-head .meta { color: var(--muted); font-size: .9rem; }
+  header.gal-head .src { margin-left: auto; font-size: .85rem; }
+  header.gal-head .src a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+  header.gal-head .src a:hover { color: var(--accent); border-color: currentColor; }
+
+  .state {
+    padding: 40px 16px;
+    color: var(--muted);
+    text-align: center;
+    font-size: .95rem;
+  }
+  .state a { color: var(--accent); }
+
+  /* zarovnané řady se zachovaným poměrem stran */
+  .grid { display: flex; flex-wrap: wrap; gap: var(--gap); }
+  .grid::after { content: ""; flex-grow: 999999999; }
+  .tile {
+    position: relative;
+    display: block;
+    height: var(--row);
+    flex-grow: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--tile-bg);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: zoom-in;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .tile img.ready { opacity: 1; }
+  .tile:hover img { transform: scale(1.04); }
+  .tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .more {
+    display: block;
+    margin: 22px auto 0;
+    padding: 11px 26px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--btn-bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .more:hover { border-color: var(--accent); color: var(--accent); }
+  .more[hidden] { display: none; }
+
+  /* prohlížeč fotek */
+  .lb {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    background: rgba(12, 16, 22, .95);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .lb.open { display: block; }
+  .lb-stage {
+    position: absolute;
+    inset: 56px 16px 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lb-stage img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+  .lb-stage img.ready { opacity: 1; }
+  .lb-bar {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    color: #fff;
+    font-size: .9rem;
+  }
+  .lb-bar.top { top: 0; height: 56px; }
+  .lb-bar.bottom { bottom: 0; height: 52px; justify-content: center; color: rgba(255,255,255,.7); }
+  .lb-bar a { color: rgba(255,255,255,.8); text-decoration: none; }
+  .lb-bar a:hover { color: #fff; }
+  .lb-count { font-variant-numeric: tabular-nums; }
+  .lb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    font: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #fff;
+    background: rgba(255,255,255,.1);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .lb-btn:hover { background: rgba(255,255,255,.22); }
+  .lb-close { margin-left: auto; }
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    font-size: 1.9rem;
+  }
+  .lb-nav.prev { left: 12px; }
+  .lb-nav.next { right: 12px; }
+  .lb-spinner {
+    position: absolute;
+    width: 34px; height: 34px;
+    border: 3px solid rgba(255,255,255,.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  .lb-spinner.hide { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) { .tile { height: calc(var(--row) * .8); } }
+  @media (max-width: 600px) {
+    .wrap { padding: 12px 10px 22px; }
+    :root { --gap: 6px; --radius: 8px; }
+    .tile { height: calc(var(--row) * .6); }
+    header.gal-head .src { margin-left: 0; width: 100%; }
+    .lb-stage { inset: 52px 6px 48px; }
+    .lb-nav { width: 44px; height: 44px; font-size: 1.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tile img, .lb-stage img { transition: none; }
+    .tile:hover img { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="gal-head" id="gal-head" hidden>
+    <h1 id="gal-title"></h1>
+    <span class="meta" id="gal-meta"></span>
+    <span class="src" id="gal-src-wrap"><a id="gal-src" href="#" target="_blank" rel="noopener">Album na Zoneramě</a></span>
+  </header>
+  <div class="state" id="state">Načítám fotky…</div>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>Zobrazit další fotky</button>
+</div>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Prohlížeč fotografií">
+  <div class="lb-bar top">
+    <span class="lb-count" id="lb-count"></span>
+    <a id="lb-orig" href="#" target="_blank" rel="noopener">Originál</a>
+    <button class="lb-btn lb-close" id="lb-close" aria-label="Zavřít">&times;</button>
+  </div>
+  <button class="lb-btn lb-nav prev" id="lb-prev" aria-label="Předchozí">&#8249;</button>
+  <div class="lb-stage">
+    <div class="lb-spinner" id="lb-spin"></div>
+    <img id="lb-img" alt="">
+  </div>
+  <button class="lb-btn lb-nav next" id="lb-next" aria-label="Další">&#8250;</button>
+  <div class="lb-bar bottom">Šipkami procházíte fotky, klávesou Esc zavřete</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // Zonerama neposílá CORS hlavičky, takže seznam fotek jde přes proxy
+  // (stejná serverless funkce jako u widgetu úřední desky). Samotné fotky
+  // se načítají napřímo z CDN Zoneramy, ty přes proxy netečou.
+  var PROXY = 'https://qaro-edeska.vercel.app/api/fetch?url=';
+
+  var BATCH = 200;          // kolik fotek si vyžádáme z Zoneramy najednou
+  var PAGE = 40;            // kolik fotek vykreslíme na jedno kliknutí
+  var BIG_MAX = 1800;       // delší strana fotky v prohlížeči (px)
+  var ROWS = { s: 140, m: 200, l: 280 };
+
+  var q = new URLSearchParams(location.search);
+  var host, albumId;
+
+  function fail(msg, link) {
+    var st = document.getElementById('state');
+    st.innerHTML = '';
+    st.appendChild(document.createTextNode(msg + ' '));
+    if (link) {
+      var a = document.createElement('a');
+      a.href = link;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'Otevřít album na Zoneramě';
+      st.appendChild(a);
+    }
+    st.hidden = false;
+    reportHeight();
+  }
+
+  /* ---------- parametry ---------- */
+  (function setup() {
+    if (q.get('theme') === 'dark') document.documentElement.classList.add('theme-dark');
+    if (q.get('bg') === 'transparent') document.documentElement.classList.add('transparent');
+
+    var row = ROWS[q.get('size')] || ROWS.m;
+    document.documentElement.style.setProperty('--row', row + 'px');
+  })();
+
+  var raw = (q.get('album') || '').trim();
+  if (!raw) {
+    fail('Chybí parametr album s odkazem na album na Zoneramě.');
+    return;
+  }
+  if (/^\d+$/.test(raw)) {
+    host = 'https://eu.zonerama.com';
+    albumId = raw;
+  } else {
+    var u;
+    try { u = new URL(raw); } catch (e) { u = null; }
+    var m = u && /\/Album\/(\d+)/i.exec(u.pathname);
+    if (!u || !/(^|\.)zonerama\.com$/i.test(u.hostname) || !m) {
+      fail('Parametr album musí být odkaz na album na Zoneramě, například https://eu.zonerama.com/N322T/Album/15900167.');
+      return;
+    }
+    host = u.protocol + '//' + u.hostname;
+    albumId = m[1];
+  }
+  var albumUrl = raw.indexOf('http') === 0 ? raw : host + '/Album/' + albumId;
+
+  /* ---------- načtení seznamu fotek ---------- */
+  var photos = [];
+  var seen = Object.create(null);
+
+  function listUrl(startIndex) {
+    return host + '/JSON/FlowLayout_PhotosInAlbum?albumId=' + albumId +
+           '&startIndex=' + startIndex + '&count=' + BATCH;
+  }
+
+  function load(startIndex) {
+    return fetch(PROXY + encodeURIComponent(listUrl(startIndex)))
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var items = (data && data.items) || [];
+        var added = 0;
+        items.forEach(function (it) {
+          // položky bez photoId jsou reklamní bannery Zoneramy
+          if (!it.photoId || seen[it.photoId]) return;
+          seen[it.photoId] = true;
+          photos.push({ id: it.photoId, w: it.width, h: it.height });
+          added++;
+        });
+        // isEnd nedorazí vždy, tak se pojistíme prázdnou dávkou i stropem
+        var next = startIndex + items.length;
+        if (data && data.isEnd === false && items.length && next <= 10000) {
+          return load(next);
+        }
+        return added;
+      });
+  }
+
+  load(0).then(function () {
+    if (!photos.length) {
+      fail('Album je prázdné nebo není veřejné.', albumUrl);
+      return;
+    }
+    document.getElementById('state').hidden = true;
+    head();
+    render(PAGE);
+  }).catch(function () {
+    fail('Fotky se nepodařilo načíst.', albumUrl);
+  });
+
+  /* ---------- vykreslení ---------- */
+  var grid = document.getElementById('grid');
+  var moreBtn = document.getElementById('more');
+  var shown = 0;
+
+  function thumbUrl(p) {
+    var rowH = 400;
+    var w = Math.max(1, Math.round(rowH * p.w / p.h));
+    return host + '/photos/' + p.id + '_' + w + 'x' + rowH + '_18.jpg';
+  }
+
+  function bigUrl(p) {
+    var scale = Math.min(1, BIG_MAX / Math.max(p.w, p.h));
+    return host + '/photos/' + p.id + '_' +
+           Math.max(1, Math.round(p.w * scale)) + 'x' +
+           Math.max(1, Math.round(p.h * scale)) + '_18.jpg';
+  }
+
+  function origUrl(p) {
+    return host + '/photos/' + p.id + '_' + p.w + 'x' + p.h + '.jpg';
+  }
+
+  function head() {
+    var title = q.get('title');
+    var showLink = q.get('link') !== '0';
+    if (!title && !showLink) return;
+
+    document.getElementById('gal-head').hidden = false;
+    if (title) {
+      document.getElementById('gal-title').textContent = title;
+      document.title = title;
+      var n = photos.length;
+      document.getElementById('gal-meta').textContent =
+        n + ' ' + (n === 1 ? 'fotka' : (n < 5 ? 'fotky' : 'fotek'));
+    }
+    if (showLink) document.getElementById('gal-src').href = albumUrl;
+    else document.getElementById('gal-src-wrap').remove();
+  }
+
+  function render(count) {
+    var frag = document.createDocumentFragment();
+    var end = Math.min(shown + count, photos.length);
+    for (var i = shown; i < end; i++) {
+      var p = photos[i];
+      var tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.type = 'button';
+      tile.dataset.i = i;
+      tile.style.flexBasis = Math.round(200 * p.w / p.h) + 'px';
+      tile.setAttribute('aria-label', 'Fotografie ' + (i + 1));
+      var img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = '';
+      img.src = thumbUrl(p);
+      img.addEventListener('load', function () { this.classList.add('ready'); });
+      tile.appendChild(img);
+      frag.appendChild(tile);
+    }
+    grid.appendChild(frag);
+    shown = end;
+    moreBtn.hidden = shown >= photos.length;
+    reportHeight();
+  }
+
+  /* ---------- prohlížeč fotek ---------- */
+  var lb = document.getElementById('lb');
+  var lbImg = document.getElementById('lb-img');
+  var lbSpin = document.getElementById('lb-spin');
+  var cur = 0;
+
+  function show(i) {
+    cur = (i + photos.length) % photos.length;
+    var p = photos[cur];
+    lbImg.classList.remove('ready');
+    lbSpin.classList.remove('hide');
+    lbImg.src = bigUrl(p);
+    lbImg.alt = 'Fotografie ' + (cur + 1) + ' z ' + photos.length;
+    document.getElementById('lb-count').textContent = (cur + 1) + ' / ' + photos.length;
+    document.getElementById('lb-orig').href = origUrl(p);
+    [-1, 1].forEach(function (d) {
+      var n = photos[(cur + d + photos.length) % photos.length];
+      if (n) new Image().src = bigUrl(n);
+    });
+  }
+
+  lbImg.addEventListener('load', function () {
+    lbImg.classList.add('ready');
+    lbSpin.classList.add('hide');
+  });
+
+  function open(i) {
+    show(i);
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('lb-close').focus();
+  }
+
+  function close() {
+    lb.classList.remove('open');
+    lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+
+  grid.addEventListener('click', function (e) {
+    var tile = e.target.closest('.tile');
+    if (tile) open(+tile.dataset.i);
+  });
+  moreBtn.addEventListener('click', function () { render(PAGE); });
+  document.getElementById('lb-close').addEventListener('click', close);
+  document.getElementById('lb-prev').addEventListener('click', function () { show(cur - 1); });
+  document.getElementById('lb-next').addEventListener('click', function () { show(cur + 1); });
+  lb.addEventListener('click', function (e) {
+    if (e.target === lb || e.target.classList.contains('lb-stage')) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(cur - 1);
+    else if (e.key === 'ArrowRight') show(cur + 1);
+  });
+
+  var tx = 0, ty = 0;
+  lb.addEventListener('touchstart', function (e) {
+    tx = e.changedTouches[0].clientX;
+    ty = e.changedTouches[0].clientY;
+  }, { passive: true });
+  lb.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    var dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(cur + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  /* ---------- hlášení výšky pro iframe ---------- */
+  var lastH = 0;
+  function reportHeight() {
+    var h = Math.ceil(document.documentElement.scrollHeight);
+    if (h === lastH || window.parent === window) return;
+    lastH = h;
+    window.parent.postMessage({ type: 'zonerama-galerie-height', height: h }, '*');
+  }
+  window.addEventListener('resize', reportHeight);
+  window.addEventListener('load', reportHeight);
+  setInterval(reportHeight, 1000);
+})();
+</script>
+</body>
+</html>
