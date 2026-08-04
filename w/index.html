@@ -236,9 +236,9 @@
   'use strict';
 
   // Zonerama neposílá CORS hlavičky, takže seznam fotek jde přes proxy
-  // (stejná serverless funkce jako u widgetu úřední desky). Samotné fotky
-  // se načítají napřímo z CDN Zoneramy, ty přes proxy netečou.
-  var PROXY = 'https://qaro-edeska.vercel.app/api/fetch?url=';
+  // (projekt zonerama-proxy na Vercelu). Samotné fotky se načítají napřímo
+  // z CDN Zoneramy, ty přes proxy netečou.
+  var PROXY = 'https://zonerama-proxy.vercel.app/api/fetch?url=';
 
   var BATCH = 200;          // kolik fotek si vyžádáme z Zoneramy najednou
   var PAGE = 40;            // kolik fotek vykreslíme na jedno kliknutí

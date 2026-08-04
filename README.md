@@ -58,8 +58,8 @@ alba přidají nové fotky, je potřeba ho pustit znovu (přes proxy se načtou 
 
 Zonerama nemá veřejné API a neposílá CORS hlavičky, takže seznam fotek nejde z prohlížeče
 načíst napřímo. Widget čte interní endpoint `/JSON/FlowLayout_PhotosInAlbum` přes CORS proxy
-v projektu [qaro-edeska](https://github.com/DigiDayCzech/qaro-edeska) (`/api/fetch`, whitelist
-domén). Přes proxy tečou jen metadata fotek, samotné obrázky jdou přímo z CDN Zoneramy.
+`zonerama-proxy.vercel.app/api/fetch` (whitelist domén, lokálně `~/projects/zonerama-proxy`).
+Přes proxy tečou jen metadata fotek, samotné obrázky jdou přímo z CDN Zoneramy.
 
 Náhledy se tahají ve variantě `_{w}x{h}_18.jpg`, ve velkém zobrazení do 1800 px na delší
 straně, odkaz „Originál“ míří na plné rozlišení.
