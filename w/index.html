@@ -345,8 +345,11 @@
         var base = new URL(url, location.href);
         var list = (d.photos || []).map(function (p) {
           var o = { id: p.id, w: p.w, h: p.h };
+          // jen http(s), ať cizí JSON z parametru src nepodstrčí javascript: odkaz
           ['t', 'b', 'o'].forEach(function (k) {
-            if (p[k]) o[k] = new URL(p[k], base).href;
+            if (!p[k]) return;
+            var abs = new URL(p[k], base);
+            if (abs.protocol === 'https:' || abs.protocol === 'http:') o[k] = abs.href;
           });
           return o;
         });
