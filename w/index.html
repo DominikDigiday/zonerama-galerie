@@ -188,6 +188,28 @@
   .lb-spinner.hide { display: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* karta místo galerie, když Zonerama fotky nevydá */
+  .blocked {
+    max-width: 560px;
+    margin: 8px auto;
+    padding: 28px 24px;
+    text-align: center;
+    background: var(--tile-bg);
+    border-radius: var(--radius);
+  }
+  .blocked h2 { font-size: 1.15rem; font-weight: 650; margin: 0 0 8px; }
+  .blocked p { color: var(--muted); font-size: .95rem; margin: 0 0 18px; line-height: 1.45; }
+  .blocked a.btn {
+    display: inline-block;
+    padding: 11px 24px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 999px;
+    text-decoration: none;
+  }
+  .blocked a.btn:hover { filter: brightness(1.1); }
+
   @media (max-width: 900px) { .tile { height: calc(var(--row) * .8); } }
   @media (max-width: 600px) {
     .wrap { padding: 12px 10px 22px; }
@@ -243,6 +265,9 @@
   var BATCH = 200;          // kolik fotek si vyžádáme z Zoneramy najednou
   var PAGE = 40;            // kolik fotek vykreslíme na jedno kliknutí
   var BIG_MAX = 1800;       // delší strana fotky v prohlížeči (px)
+  // Od 10/2026 Zonerama na fotky vložené mimo svůj web vrací zástupný
+  // obrázek „Bot Detected" (512x512, HTTP 200). Poznáme ho podle rozměru.
+  var BLOCKED_W = 512, BLOCKED_H = 512;
   var ROWS = { s: 140, m: 200, l: 280 };
 
   var q = new URLSearchParams(location.search);
@@ -303,22 +328,42 @@
            '&startIndex=' + startIndex + '&count=' + BATCH;
   }
 
-  // Záložní zdroj: snapshot alba uložený v repu (w/data/<albumId>.json).
-  // Použije se, když proxy nedojede, ať galerie nespadne úplně.
-  function loadSnapshot() {
-    return fetch('data/' + albumId + '.json', { cache: 'no-cache' })
+  // Snapshot alba (w/data/<albumId>.json, nebo JSON z parametru src).
+  // Fotky v něm můžou mít vlastní adresy t (náhled), b (prohlížeč)
+  // a o (originál) na našem úložišti, relativně k JSONu. Takové album
+  // se načítá jen ze snapshotu, Zoneramy se vůbec neptáme.
+  // Bez vlastních adres slouží snapshot jen jako záloha, když proxy nedojede.
+  var hosted = false;
+
+  function fetchSnapshot(url) {
+    return fetch(url, { cache: 'no-cache' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
       .then(function (d) {
-        (d.photos || []).forEach(function (p) {
-          if (seen[p.id]) return;
-          seen[p.id] = true;
-          photos.push(p);
+        var base = new URL(url, location.href);
+        var list = (d.photos || []).map(function (p) {
+          var o = { id: p.id, w: p.w, h: p.h };
+          ['t', 'b', 'o'].forEach(function (k) {
+            if (p[k]) o[k] = new URL(p[k], base).href;
+          });
+          return o;
         });
-        if (!photos.length) throw new Error('prázdný snapshot');
+        return { list: list, hosted: list.length > 0 && !!list[0].t };
       });
+  }
+
+  function useSnapshot(snap) {
+    photos = [];
+    seen = Object.create(null);
+    snap.list.forEach(function (p) {
+      if (seen[p.id]) return;
+      seen[p.id] = true;
+      photos.push(p);
+    });
+    hosted = snap.hosted;
+    if (!photos.length) throw new Error('prázdný snapshot');
   }
 
   function load(startIndex) {
@@ -346,20 +391,31 @@
       });
   }
 
-  load(0)
-    .catch(function () {
-      photos = [];
-      seen = Object.create(null);
-      return loadSnapshot();
+  var srcParam = (q.get('src') || '').trim();
+  var snapUrl = srcParam
+    ? (/\.json(\?|$)/i.test(srcParam) ? srcParam : srcParam.replace(/\/?$/, '/') + 'album.json')
+    : 'data/' + albumId + '.json';
+  var snapshot = fetchSnapshot(snapUrl).catch(function () { return null; });
+
+  snapshot
+    .then(function (snap) {
+      if (snap && snap.hosted) return useSnapshot(snap);
+      return load(0).catch(function () {
+        if (!snap) throw new Error('bez snapshotu');
+        return useSnapshot(snap);
+      });
     })
     .then(function () {
       if (!photos.length) {
         fail('Album je prázdné nebo není veřejné.', albumUrl);
         return;
       }
-      document.getElementById('state').hidden = true;
-      head();
-      render(PAGE);
+      return probe(photos[0]).then(function (ok) {
+        document.getElementById('state').hidden = true;
+        if (!ok) { blocked(); return; }
+        head();
+        render(PAGE);
+      });
     })
     .catch(function () {
       fail('Fotky se nepodařilo načíst.', albumUrl);
@@ -370,13 +426,54 @@
   var moreBtn = document.getElementById('more');
   var shown = 0;
 
+  // Ověří na první fotce, že Zonerama vydává skutečné fotky.
+  function probe(p) {
+    if (hosted) return Promise.resolve(true);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      var done = function (ok) { img.onload = img.onerror = null; resolve(ok); };
+      img.onload = function () {
+        done(!(img.naturalWidth === BLOCKED_W && img.naturalHeight === BLOCKED_H));
+      };
+      img.onerror = function () { done(false); };
+      setTimeout(function () { done(true); }, 8000);
+      img.src = thumbUrl(p);
+    });
+  }
+
+  function blocked() {
+    var title = q.get('title');
+    var n = photos.length;
+    var box = document.createElement('div');
+    box.className = 'blocked';
+    var h = document.createElement('h2');
+    h.textContent = title || 'Fotogalerie';
+    var t = document.createElement('p');
+    t.textContent = n + ' ' + (n === 1 ? 'fotka' : (n < 5 ? 'fotky' : 'fotek')) +
+      ' z alba si prohlédněte přímo na Zoneramě.';
+    var a = document.createElement('a');
+    a.className = 'btn';
+    a.href = albumUrl;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = 'Otevřít fotogalerii';
+    box.appendChild(h);
+    box.appendChild(t);
+    box.appendChild(a);
+    grid.parentNode.insertBefore(box, grid);
+    if (title) document.title = title;
+    reportHeight();
+  }
+
   function thumbUrl(p) {
+    if (p.t) return p.t;
     var rowH = 400;
     var w = Math.max(1, Math.round(rowH * p.w / p.h));
     return host + '/photos/' + p.id + '_' + w + 'x' + rowH + '_18.jpg';
   }
 
   function bigUrl(p) {
+    if (p.b) return p.b;
     var scale = Math.min(1, BIG_MAX / Math.max(p.w, p.h));
     return host + '/photos/' + p.id + '_' +
            Math.max(1, Math.round(p.w * scale)) + 'x' +
@@ -384,6 +481,7 @@
   }
 
   function origUrl(p) {
+    if (p.o || p.b) return p.o || p.b;
     return host + '/photos/' + p.id + '_' + p.w + 'x' + p.h + '.jpg';
   }
 

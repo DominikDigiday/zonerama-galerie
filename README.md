@@ -54,6 +54,24 @@ git add w/data && git commit -m "Snapshot alba" && git push
 Snapshot obsahuje jen ID a rozměry fotek, obrázky se pořád berou ze Zoneramy. Když se do
 alba přidají nové fotky, je potřeba ho pustit znovu (přes proxy se načtou samy).
 
+## Fotky hostované u nás (Zonerama blokuje vkládání)
+
+Od 10/2026 Zonerama na fotky vložené mimo svůj web vrací obrázek „Bot Detected".
+Widget to pozná podle první fotky (512x512) a místo galerie ukáže kartu s odkazem na album.
+
+Aby galerie fungovala, fotky musí ležet u nás. Majitel alba si ho na Zoneramě stáhne,
+pošle nám fotky a z nich se album vyrobí:
+
+```bash
+python3 hosted.py ~/Downloads/turnaj https://eu.zonerama.com/N322T/Album/15900167
+git add w/data && git commit -m "Album hostované u nás" && git push
+```
+
+Skript zmenší fotky (náhled 400 px na výšku, prohlížeč max 1800 px) do `w/data/<albumId>/`
+a přepíše `w/data/<albumId>.json`. Iframe na webu obce se nemění. Album může ležet i na
+jiném serveru: parametr `src=<URL složky s album.json>`, server musí u JSONu posílat
+`Access-Control-Allow-Origin`.
+
 ## Jak to funguje
 
 Zonerama nemá veřejné API a neposílá CORS hlavičky, takže seznam fotek nejde z prohlížeče
